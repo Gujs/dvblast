@@ -30,7 +30,7 @@ This build includes BISS-1 descrambling support via libdvbcsa.
 
 
 %prep
-%autosetup -n dvblast-%{github_branch} -a 1 -a 2
+%setup -q -n dvblast-%{github_branch} -a 1 -a 2
 # Prepare dvbiscovery
 sed -i -e 's|/usr/local|/usr|' extra/dvbiscovery/dvbiscovery.sh
 install -pm 0644 extra/dvbiscovery/README README.dvbiscovery
