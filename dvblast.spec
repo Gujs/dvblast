@@ -30,8 +30,7 @@ This build includes BISS-1 descrambling support via libdvbcsa.
 
 
 %prep
-%setup -q -n dvblast-%{github_branch}
-%setup -q -T -D -a 1
+%autosetup -n dvblast-%{github_branch} -a 1
 # Prepare dvbiscovery
 sed -i -e 's|/usr/local|/usr|' extra/dvbiscovery/dvbiscovery.sh
 install -pm 0644 extra/dvbiscovery/README README.dvbiscovery
@@ -76,7 +75,7 @@ install -pm 0755 extra/dvbiscovery/dvbiscovery.sh %{buildroot}%{_bindir}
 %{_datadir}/%{name}
 
 %changelog
-* Sat Mar 15 2026 Gregor <gregor@localhost> - 3.5-1.biss
+* Sun Mar 15 2026 Gregor <gregor@localhost> - 3.5-1.biss
 - Upgrade to 3.5 from Gujs/dvblast biss-descrambling branch
 - Add BISS-1 descrambling support (libdvbcsa bundled as static lib)
 - Per-output /biss=<key> config option for inline DVB-CSA decryption
