@@ -10,13 +10,13 @@ License:        GPLv2+
 URL:            https://github.com/%{github_owner}/dvblast
 Source0:        https://github.com/%{github_owner}/dvblast/archive/%{github_branch}/dvblast-%{github_branch}.tar.gz
 Source1:        https://github.com/glenvt18/libdvbcsa/archive/master/libdvbcsa-master.tar.gz
+Source2:        https://code.videolan.org/videolan/bitstream/-/archive/master/bitstream-master.tar.gz
 
 BuildRequires:  gcc
 BuildRequires:  make
 BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  libtool
-BuildRequires:  bitstream-devel >= 1.4
 BuildRequires:  libev-devel
 
 
@@ -30,25 +30,28 @@ This build includes BISS-1 descrambling support via libdvbcsa.
 
 
 %prep
-%autosetup -n dvblast-%{github_branch} -a 1
+%autosetup -n dvblast-%{github_branch} -a 1 -a 2
 # Prepare dvbiscovery
 sed -i -e 's|/usr/local|/usr|' extra/dvbiscovery/dvbiscovery.sh
 install -pm 0644 extra/dvbiscovery/README README.dvbiscovery
 
 
 %build
+# Install bitstream headers in local prefix
+make -C bitstream-master install PREFIX=%{_builddir}/local
+
 # Build libdvbcsa as static lib in local prefix
 pushd libdvbcsa-master
 ./bootstrap
-./configure --enable-static --disable-shared --prefix=%{_builddir}/dvbcsa-local
+./configure --enable-static --disable-shared --prefix=%{_builddir}/local
 make %{?_smp_mflags}
 make install
 popd
 
 # Build dvblast with BISS support
-export CFLAGS="%{optflags} -DHAVE_DVBCSA -I%{_builddir}/dvbcsa-local/include"
+export CFLAGS="%{optflags} -DHAVE_DVBCSA -I%{_builddir}/local/include"
 export LDFLAGS="%{?__global_ldflags}"
-export LDLIBS_DVBLAST="-lpthread -lev -L%{_builddir}/dvbcsa-local/lib -ldvbcsa"
+export LDLIBS_DVBLAST="-lpthread -lev -L%{_builddir}/local/lib -ldvbcsa"
 %make_build V=1
 
 
