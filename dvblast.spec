@@ -43,7 +43,7 @@ make -C bitstream-master install PREFIX=%{_builddir}/local
 # Build libdvbcsa as static lib in local prefix
 pushd libdvbcsa-master
 ./bootstrap
-./configure --enable-static --disable-shared --prefix=%{_builddir}/local
+CFLAGS="-fPIE" ./configure --enable-static --disable-shared --prefix=%{_builddir}/local
 make %{?_smp_mflags}
 make install
 popd
