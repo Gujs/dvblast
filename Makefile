@@ -4,6 +4,7 @@ TOPDIR = `basename ${PWD}`
 GIT_VER = $(shell git describe --tags --dirty --always 2>/dev/null)
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 deltacast_inc := $(shell sh -c 'test -f /usr/include/StreamMaster.h && echo -n Y')
+dvbcsa_inc := $(shell sh -c 'pkg-config --exists libdvbcsa 2>/dev/null && echo -n Y || (test -f /usr/include/dvbcsa/dvbcsa.h -o -f /usr/local/include/dvbcsa/dvbcsa.h) && echo -n Y')
 
 CFLAGS ?= -O3 -fomit-frame-pointer -g
 CFLAGS += -Wall -Wformat-security -Wno-strict-aliasing
@@ -28,9 +29,14 @@ CFLAGS += -DHAVE_ASI_DELTACAST_SUPPORT
 LDLIBS += -lstreammaster
 endif
 
+ifeq ($(dvbcsa_inc),Y)
+CFLAGS += -DHAVE_DVBCSA
+LDLIBS_DVBLAST += -ldvbcsa
+endif
+
 LDLIBS_DVBLAST += -lpthread -lev
 
-OBJ_DVBLAST = dvblast.o util.o dvb.o udp.o asi.o demux.o output.o en50221.o comm.o mrtg-cnt.o asi-deltacast.o
+OBJ_DVBLAST = dvblast.o util.o dvb.o udp.o asi.o demux.o output.o en50221.o comm.o mrtg-cnt.o asi-deltacast.o biss.o
 OBJ_DVBLASTCTL = util.o dvblastctl.o
 
 ifndef V
@@ -49,7 +55,7 @@ all: dvblast dvblastctl
 
 .PHONY: clean install uninstall dist
 
-%.o: %.c Makefile config.h dvblast.h en50221.h comm.h asi.h mrtg-cnt.h asi-deltacast.h
+%.o: %.c Makefile config.h dvblast.h biss.h en50221.h comm.h asi.h mrtg-cnt.h asi-deltacast.h
 	@echo "CC      $<"
 	$(Q)$(CROSS)$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 

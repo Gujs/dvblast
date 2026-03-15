@@ -774,6 +774,7 @@ static void demux_Handle( block_t *p_ts )
         if ( p_output != NULL )
         {
             if ( i_ca_handle && (p_output->config.i_config & OUTPUT_WATCH) &&
+                 !p_output->config.b_biss &&
                  ts_get_unitstart( p_ts->p_ts ) )
             {
                 uint8_t *p_payload;
@@ -967,6 +968,10 @@ void demux_Change( output_t *p_output, const output_config_t *p_config )
     p_output->config.b_do_remap = p_config->b_do_remap;
     memcpy(p_output->config.pi_confpids, p_config->pi_confpids,
            sizeof(uint16_t) * N_MAP_PIDS);
+
+    /* BISS config propagation for SIGHUP reload */
+    p_output->config.b_biss = p_config->b_biss;
+    memcpy(p_output->config.pi_biss_cw, p_config->pi_biss_cw, 8);
 
     /* Change output settings related to names. */
     dvb_string_clean( &p_output->config.network_name );

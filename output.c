@@ -377,6 +377,8 @@ void output_Close( output_t *p_output )
     free( p_output->p_eit_ts_buffer );
     p_output->config.i_config &= ~OUTPUT_VALID;
 
+    biss_Destroy( &p_output->biss_key );
+
     close( p_output->i_handle );
 
     config_Free( &p_output->config );
@@ -392,6 +394,10 @@ static void output_Flush( output_t *p_output )
     struct iovec p_iov[i_block_cnt + 2];
     uint8_t p_rtp_hdr[RTP_HEADER_SIZE];
     int i_iov = 0, i_payload_len, i_block;
+    /* BISS: save original TS packets when descrambling shared blocks */
+    uint8_t p_biss_save[i_block_cnt][TS_SIZE];
+    bool pb_biss_descrambled[i_block_cnt];
+    memset( pb_biss_descrambled, 0, sizeof(pb_biss_descrambled) );
 
     if ( (p_output->config.i_config & OUTPUT_RAW) )
     {
@@ -436,6 +442,18 @@ static void output_Flush( output_t *p_output )
             }
         }
 
+        /* BISS descrambling: decrypt in-place, save original if shared */
+        if ( p_output->biss_key.b_valid &&
+             ts_get_scrambling( p_packet->pp_blocks[i_block]->p_ts ) )
+        {
+            if ( p_packet->pp_blocks[i_block]->i_refcount > 1 )
+                memcpy( p_biss_save[i_block],
+                        p_packet->pp_blocks[i_block]->p_ts, TS_SIZE );
+            biss_Descramble( &p_output->biss_key,
+                             p_packet->pp_blocks[i_block]->p_ts );
+            pb_biss_descrambled[i_block] = true;
+        }
+
         p_iov[i_iov].iov_base = p_packet->pp_blocks[i_block]->p_ts;
         p_iov[i_iov].iov_len = TS_SIZE;
         i_iov++;
@@ -471,11 +489,17 @@ static void output_Flush( output_t *p_output )
         p_packet->pp_blocks[i_block]->i_refcount--;
         if ( !p_packet->pp_blocks[i_block]->i_refcount )
             block_Delete( p_packet->pp_blocks[i_block] );
-        else if ( b_do_remap || p_output->config.b_do_remap ) {
+        else {
             /* still referenced so re-instate the original pid if remapped */
-            block_t * p_block = p_packet->pp_blocks[i_block];
-            if (p_block->tmp_pid != UNUSED_PID)
-                ts_set_pid( p_block->p_ts, p_block->tmp_pid );
+            if ( b_do_remap || p_output->config.b_do_remap ) {
+                block_t * p_block = p_packet->pp_blocks[i_block];
+                if (p_block->tmp_pid != UNUSED_PID)
+                    ts_set_pid( p_block->p_ts, p_block->tmp_pid );
+            }
+            /* BISS: restore original scrambled packet for other outputs */
+            if ( pb_biss_descrambled[i_block] )
+                memcpy( p_packet->pp_blocks[i_block]->p_ts,
+                        p_biss_save[i_block], TS_SIZE );
         }
     }
     p_output->p_packets = p_packet->p_next;
@@ -694,6 +718,18 @@ void output_Change( output_t *p_output, const output_config_t *p_config )
     if ( p_config->i_config & OUTPUT_RAW ) {
         p_output->raw_pkt_header.iph.saddr = inet_addr(p_config->psz_srcaddr);
         p_output->raw_pkt_header.udph.source = htons(p_config->i_srcport);
+    }
+
+    /* BISS key change */
+    if ( p_config->b_biss != p_output->config.b_biss ||
+         ( p_config->b_biss &&
+           memcmp( p_config->pi_biss_cw, p_output->config.pi_biss_cw, 8 ) ) )
+    {
+        biss_Destroy( &p_output->biss_key );
+        p_output->config.b_biss = p_config->b_biss;
+        memcpy( p_output->config.pi_biss_cw, p_config->pi_biss_cw, 8 );
+        if ( p_config->b_biss )
+            biss_Init( &p_output->biss_key, p_config->pi_biss_cw );
     }
 }
 

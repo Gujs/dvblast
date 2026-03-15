@@ -29,6 +29,7 @@
 #include <netinet/ip.h>
 
 #include "config.h"
+#include "biss.h"
 
 #ifndef container_of
 #   define container_of(ptr, type, member) ({                               \
@@ -156,6 +157,10 @@ typedef struct output_config_t
     /* for pidmap from config file */
     bool b_do_remap;
     uint16_t pi_confpids[N_MAP_PIDS];
+
+    /* BISS descrambling */
+    bool b_biss;
+    uint8_t pi_biss_cw[8];
 } output_config_t;
 
 typedef struct output_t
@@ -191,6 +196,9 @@ typedef struct output_t
     uint16_t pi_freepids[MAX_PIDS];   // used where multiple streams of the same type are used
 
     struct udprawpkt raw_pkt_header;
+
+    /* BISS descrambling */
+    biss_key_t biss_key;
 } output_t;
 
 typedef struct ts_pid_info {

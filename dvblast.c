@@ -387,6 +387,29 @@ static bool config_ParseHost( output_config_t *p_config, char *psz_string )
         }
         else if ( IS_OPTION("newsid=") )
             p_config->i_new_sid = strtol( ARG_OPTION("newsid="), NULL, 0 );
+        else if ( IS_OPTION("biss=") )
+        {
+            const char *psz_key = ARG_OPTION("biss=");
+#ifdef HAVE_DVBCSA
+            if ( !biss_ParseKey( psz_key, p_config->pi_biss_cw ) )
+            {
+                msg_Err( NULL, "invalid BISS key \"%s\" (need 12 hex digits)",
+                         psz_key );
+                p_config->b_biss = false;
+            }
+            else
+            {
+                p_config->b_biss = true;
+                msg_Info( NULL, "BISS descrambling enabled for %s",
+                          p_config->psz_displayname ?
+                          p_config->psz_displayname : "output" );
+            }
+#else
+            msg_Err( NULL, "BISS key \"%s\" ignored: built without libdvbcsa",
+                     psz_key );
+            p_config->b_biss = false;
+#endif
+        }
         else
             msg_Warn( NULL, "unrecognized option %s", psz_string );
 
