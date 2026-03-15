@@ -720,8 +720,10 @@ void output_Change( output_t *p_output, const output_config_t *p_config )
         p_output->raw_pkt_header.udph.source = htons(p_config->i_srcport);
     }
 
-    /* BISS key change */
-    if ( p_config->b_biss != p_output->config.b_biss ||
+    /* BISS key change — compare against biss_key.b_valid (actual key state)
+     * rather than config.b_biss, because demux_Change() may have already
+     * copied b_biss to the output config before we get here. */
+    if ( p_config->b_biss != p_output->biss_key.b_valid ||
          ( p_config->b_biss &&
            memcmp( p_config->pi_biss_cw, p_output->config.pi_biss_cw, 8 ) ) )
     {
