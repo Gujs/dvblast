@@ -36,9 +36,9 @@
  *
  * BISS-1 key is 6 bytes (12 hex digits). Expanded to 8 bytes:
  *   CW[0..2] = key[0..2]
- *   CW[3]    = key[0] ^ key[1] ^ key[2]   (checksum)
+ *   CW[3]    = (key[0] + key[1] + key[2]) mod 256  (checksum)
  *   CW[4..6] = key[3..5]
- *   CW[7]    = key[3] ^ key[4] ^ key[5]   (checksum)
+ *   CW[7]    = (key[3] + key[4] + key[5]) mod 256  (checksum)
  *****************************************************************************/
 bool biss_ParseKey( const char *psz_hex, uint8_t pi_cw[8] )
 {
@@ -63,11 +63,11 @@ bool biss_ParseKey( const char *psz_hex, uint8_t pi_cw[8] )
     pi_cw[0] = pi_key[0];
     pi_cw[1] = pi_key[1];
     pi_cw[2] = pi_key[2];
-    pi_cw[3] = pi_key[0] ^ pi_key[1] ^ pi_key[2];
+    pi_cw[3] = (pi_key[0] + pi_key[1] + pi_key[2]) & 0xFF;
     pi_cw[4] = pi_key[3];
     pi_cw[5] = pi_key[4];
     pi_cw[6] = pi_key[5];
-    pi_cw[7] = pi_key[3] ^ pi_key[4] ^ pi_key[5];
+    pi_cw[7] = (pi_key[3] + pi_key[4] + pi_key[5]) & 0xFF;
 
     return true;
 }
